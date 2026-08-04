@@ -6,7 +6,7 @@ services:
     container_name: fhem-mcp
     restart: unless-stopped
     env_file:
-      - fhem-mcp/.env
+      - .env
     ports:
       - "5887:8000"
     networks:
