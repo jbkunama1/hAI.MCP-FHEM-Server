@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  fhem-mcp:
+    build: .
+    container_name: fhem-mcp
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5887:8000"
+    networks:
+      - highfishNetwork
+
+networks:
+  highfishNetwork:
+    external: true
