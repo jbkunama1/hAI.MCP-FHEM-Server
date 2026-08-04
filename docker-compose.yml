@@ -5,8 +5,9 @@ services:
     build: .
     container_name: fhem-mcp
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      - MCP_API_KEY=${MCP_API_KEY:-your-secure-random-key-here}
+      - FHEM_URL=${FHEM_URL:-http://192.168.178.15:8085/fhem}
     ports:
       - "5887:8000"
     networks:
