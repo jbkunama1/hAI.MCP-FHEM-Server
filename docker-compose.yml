@@ -2,12 +2,12 @@ version: '3.8'
 
 services:
   fhem-mcp:
-    build: .
+    image: ghcr.io/jbkunama1/hai.mcpservers/fhem-mcp:latest
     container_name: fhem-mcp
     restart: unless-stopped
     environment:
-      - MCP_API_KEY=${MCP_API_KEY:-your-secure-random-key-here}
-      - FHEM_URL=${FHEM_URL:-your-fhem-url-here}
+      - MCP_API_KEY=your-secure-random-key-here
+      - FHEM_URL=http://192.168.178.15:8085/fhem
     ports:
       - "5887:8000"
     networks:
