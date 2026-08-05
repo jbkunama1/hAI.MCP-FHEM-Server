@@ -1,8 +1,7 @@
 import json
 import os
 import requests
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from starlette.responses import JSONResponse
 from mcp.server.fastmcp import FastMCP
 
 MCP_API_KEY = os.getenv("MCP_API_KEY")
@@ -79,21 +78,25 @@ def fhem_define(name: str, type: str, def_attr: str = "") -> str:
     except requests.exceptions.RequestException as e:
         return f"FHEM connection failed: {e}"
 
-# FastAPI app with MCP Streamable HTTP endpoint mounted at /mcp
-app = FastAPI()
-app.mount("/mcp", mcp.streamable_http_app())
+@mcp.custom_route("/health", methods=["GET"])
+async def health(request):
+    return JSONResponse({"status": "ok"})
 
-@app.middleware("http")
-async def require_api_key(request, call_next):
-    path = request.url.path.rstrip("/")
-    if path != "/mcp" or not MCP_API_KEY:
-        return await call_next(request)
-    if request.headers.get("X-API-Key") != MCP_API_KEY:
-        return JSONResponse({"detail": "Unauthorized"}, status_code=401)
-    return await call_next(request)
+# ASGI app for uvicorn (runs its own lifespan, needed by the MCP session manager)
+app = mcp.streamable_http_app()
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+# X-API-Key auth for the MCP endpoint (health stays public)
+if MCP_API_KEY:
+    from starlette.middleware.base import BaseHTTPMiddleware
+
+    class ApiKeyMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            if request.url.path == "/health":
+                return await call_next(request)
+            if request.headers.get("X-API-Key") != MCP_API_KEY:
+                return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+            return await call_next(request)
+
+    app.add_middleware(ApiKeyMiddleware)
 
 # ponytail: read-only list via jsonlist2; add reading-history/statistics tools on demand.
