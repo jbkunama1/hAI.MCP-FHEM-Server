@@ -18,7 +18,21 @@ def _devices() -> list[dict]:
     """Return parsed device list from FHEM jsonlist2."""
     return json.loads(_fhem("jsonlist2")).get("Results", [])
 
-mcp = FastMCP("fhem-mcp")
+mcp = FastMCP(
+    "fhem-mcp",
+    instructions=(
+        "This connector controls a FHEM home automation system. "
+        "Sent via MCP protocol to help AI understand how to use this connector.\n\n"
+        "Workflow:\n"
+        "1. Always start with fhem_list_devices() to discover available devices (names, types, readings) — never guess device names.\n"
+        "2. To read a value, use fhem_get(device, reading), e.g. fhem_get('WohnzimmerLampe', 'state').\n"
+        "3. To control a device, use fhem_set(device, value), e.g. fhem_set('WohnzimmerLampe', 'on'). "
+        "Common values per type: on/off/toggle/dim <0-100>/rgb <RRGGBB> for lights; desired-temp <value> for thermostats.\n"
+        "4. To create a device, use fhem_define(name, type, def_attr).\n"
+        "5. For anything not covered, use fhem_command(cmd) with a raw FHEM command.\n"
+        "6. Only call write tools (fhem_set/fhem_define) when the user explicitly asks to change something."
+    ),
+)
 
 @mcp.tool()
 def fhem_command(cmd: str) -> str:
