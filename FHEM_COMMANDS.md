@@ -31,7 +31,19 @@ Lists FHEM devices as JSON, optionally filtered.
 - Lights by type: `fhem_list_devices(type_filter="HUEDevice")`
 - Devices matching name: `fhem_list_devices(name_filter="Wohnzimmer")`
 
-### 2. `fhem_get`
+### 2. `fhem_device_search`
+Search FHEM devices by room or type.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `room` | `str` | Room name (matches the `room` attribute) |
+| `type_filter` | `str` | Exact device type, e.g. `Dummy`, `FRITZBOX`, `Shelly` |
+
+**Examples**:
+- All devices in a room: `fhem_device_search(room="LivingRoom")`
+- Lights in a room: `fhem_device_search(room="LivingRoom", type_filter="HUEDevice")`
+
+### 3. `fhem_get`
 Read a single reading of a device.
 
 | Parameter | Type | Description |
@@ -41,7 +53,28 @@ Read a single reading of a device.
 
 **Example**: `fhem_get("WohnzimmerLampe", "state")`
 
-### 3. `fhem_set`
+### 4. `fhem_get_readings`
+Get all readings of a device.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `device` | `str` | Device name |
+
+**Example**: `fhem_get_readings("WohnzimmerLampe")`
+
+### 5. `fhem_reading_history`
+Get the history of a FHEM reading.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `device` | `str` | Device name |
+| `reading` | `str` | Reading name |
+| `start` | `str` | Optional start date/time |
+| `end` | `str` | Optional end date/time |
+
+**Example**: `fhem_reading_history("Wetter", "temperature", "2026-08-01", "2026-08-05")`
+
+### 6. `fhem_set`
 Control a device (set a value/state).
 
 | Parameter | Type | Description |
@@ -53,7 +86,17 @@ Control a device (set a value/state).
 - `fhem_set("WohnzimmerLampe", "on")`
 - `fhem_set("Heizung", "desired-temp 22")`
 
-### 4. `fhem_define`
+### 7. `fhem_set_multiple`
+Set multiple values of a device in one call.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `device` | `str` | Device name |
+| `values` | `dict` | Map of command → value, e.g. `{"on": "", "rgb": "FF0000"}` |
+
+**Example**: `fhem_set_multiple("Lampe", {"on": "", "rgb": "FF0000"})`
+
+### 8. `fhem_define`
 Create a new FHEM device.
 
 | Parameter | Type | Description |
@@ -64,7 +107,36 @@ Create a new FHEM device.
 
 **Example**: `fhem_define("Wetter", "Dummy")`
 
-### 5. `fhem_command`
+### 9. `fhem_attr`
+Set an attribute of a FHEM device.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `device` | `str` | Device name |
+| `name` | `str` | Attribute name |
+| `value` | `str` | Attribute value |
+
+**Example**: `fhem_attr("WohnzimmerLampe", "room", "LivingRoom")`
+
+### 10. `fhem_list_attrs`
+List all attributes of a FHEM device.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `device` | `str` | Device name |
+
+**Example**: `fhem_list_attrs("WohnzimmerLampe")`
+
+### 11. `fhem_delete`
+Delete a FHEM device.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `name` | `str` | Device name |
+
+**Example**: `fhem_delete("WohnzimmerLampe")`
+
+### 12. `fhem_command`
 Execute a raw FHEM command (escape hatch for anything not covered above).
 
 **Example**: `fhem_command("attr light room LivingRoom")`
@@ -156,9 +228,14 @@ list
 list type=<device_type>
 ```
 
+### **List Devices by Room**
+```bash
+list room=<room_name>
+```
+
 **Example**:
 ```bash
-list type=HUEDevice
+list room=LivingRoom
 ```
 
 ---
@@ -166,13 +243,16 @@ list type=HUEDevice
 ## 🤖 Agent Interaction Guide
 
 ### **1. Discover Devices**
-Call `fhem_list_devices()` first — returns all devices as JSON with names, types and readings.
+Call `fhem_list_devices()` first — returns all devices as JSON with names, types and readings. Filter by room with `fhem_device_search(room=...)`.
 
-### **2. Control a Device**
-Call `fhem_set(<device>, <value>)` — e.g. `fhem_set("light", "on")`.
+### **2. Read Device Status**
+Call `fhem_get(<device>, <reading>)` — e.g. `fhem_get("light", "state")`. To get all readings at once, use `fhem_get_readings(<device>)`.
 
-### **3. Read Device Status**
-Call `fhem_get(<device>, <reading>)` — e.g. `fhem_get("light", "state")`.
+### **3. Control a Device**
+Call `fhem_set(<device>, <value>)` — e.g. `fhem_set("light", "on")`. For several values at once use `fhem_set_multiple(<device>, {...})`.
+
+### **4. Manage Devices**
+Use `fhem_define` to create, `fhem_attr`/`fhem_list_attrs` to manage attributes, and `fhem_delete` to remove devices.
 
 ---
 

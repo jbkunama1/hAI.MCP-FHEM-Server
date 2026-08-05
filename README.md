@@ -119,9 +119,16 @@ with header `X-API-Key: your-secure-random-key-here`.
 | Tool | Description |
 |------|-------------|
 | `fhem_list_devices(name_filter, type_filter)` | List all devices as JSON, optionally filtered by name or type |
+| `fhem_device_search(room, type_filter)` | Search devices by room or type |
 | `fhem_get(device, reading)` | Read a single reading of a device |
+| `fhem_get_readings(device)` | Get all readings of a device |
+| `fhem_reading_history(device, reading, start, end)` | Get reading history |
 | `fhem_set(device, value)` | Control a device (on/off, temperature, dim, …) |
+| `fhem_set_multiple(device, values)` | Set multiple values of a device at once |
 | `fhem_define(name, type, def_attr)` | Create a new FHEM device |
+| `fhem_attr(device, name, value)` | Set an attribute of a device |
+| `fhem_list_attrs(device)` | List all attributes of a device |
+| `fhem_delete(name)` | Delete a FHEM device |
 | `fhem_command(cmd)` | Execute a raw FHEM command |
 
 Full reference: [FHEM Command Reference](FHEM_COMMANDS.md).
