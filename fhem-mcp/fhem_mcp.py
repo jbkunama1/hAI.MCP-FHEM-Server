@@ -1,7 +1,8 @@
 import json
 import os
 import requests
-from fastapi import FastAPI, Request, Response, JSONResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from mcp.server.fastmcp import FastMCP
 
 MCP_API_KEY = os.getenv("MCP_API_KEY")
