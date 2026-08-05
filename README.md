@@ -18,7 +18,7 @@ A collection of lightweight, containerized MCP servers for controlling home auto
 
 ## 📦 Features
 
-- **FHEM MCP Server**: Control FHEM via a REST API.
+- **FHEM MCP Server**: Steuert FHEM über das offizielle MCP-Streamable-HTTP-Protokoll.
 - **Dockerized**: Ready to deploy with `docker-compose` or Portainer.
 - **GitHub Actions**: Automated builds and pushes to **GHCR.io**.
 - **MIT License**: Free to use, modify, and distribute.
@@ -102,11 +102,27 @@ docker-compose up -d
 
 ## 🛠️ Usage
 
-### Send a Command to FHEM
+The server implements the **MCP Streamable HTTP** protocol. Connect your MCP client (Copilot, Cursor, Claude Desktop, …) to:
 
-```bash
-curl -X GET "http://localhost:5887/command?cmd=set%20light%20on" -H "X-API-Key: your-secure-random-key-here"
 ```
+http://<host>:5887/mcp
+```
+
+with header `X-API-Key: your-secure-random-key-here`.
+
+### Exposed MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `fhem_list_devices(name_filter, type_filter)` | List all devices as JSON, optionally filtered by name or type |
+| `fhem_get(device, reading)` | Read a single reading of a device |
+| `fhem_set(device, value)` | Control a device (on/off, temperature, dim, …) |
+| `fhem_define(name, type, def_attr)` | Create a new FHEM device |
+| `fhem_command(cmd)` | Execute a raw FHEM command |
+
+Full reference: [FHEM Command Reference](FHEM_COMMANDS.md).
+
+> **Note**: The old REST endpoint `GET /command` was removed in favor of the MCP protocol.
 
 ---
 
@@ -114,8 +130,8 @@ curl -X GET "http://localhost:5887/command?cmd=set%20light%20on" -H "X-API-Key: 
 
 ```
 ├── fhem-mcp/
-│   ├── Dockerfile          # Lightweight Python Alpine image
-│   ├── fhem_mcp.py         # FastAPI server for FHEM
+│   ├── Dockerfile          # Lightweight Python 3.10 slim image
+│   ├── fhem_mcp.py         # FastMCP server for FHEM (Streamable HTTP)
 │   ├── requirements.txt    # Python dependencies
 │   └── .env.example        # Example environment variables
 ├── .github/
