@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="fhem-mcp-banner.png" alt="hAI.MCPServers Banner">
+</p>
+
 # hAI.MCPServers 🚀
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
