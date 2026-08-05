@@ -25,7 +25,7 @@ EXPOSE 8000
 
 # Health check using curl
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/command?cmd=version || exit 1
+  CMD curl -f http://localhost:8000/health || exit 1
 
 # Command to run the application
 CMD ["uvicorn", "fhem_mcp:app", "--host", "0.0.0.0", "--port", "8000"]

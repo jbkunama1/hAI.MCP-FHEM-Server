@@ -11,6 +11,10 @@ def verify_key(key: str):
     if key != API_KEY:
         raise HTTPException(status_code=403, detail="Invalid API Key")
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 @app.get("/command")
 async def send_command(cmd: str, x_api_key: str = Header(...)):
     verify_key(x_api_key)
