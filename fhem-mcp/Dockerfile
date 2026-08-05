@@ -1,5 +1,5 @@
-# Use lightweight Python Alpine image
-FROM python:3.9-slim
+# Use lightweight Python slim image (mcp SDK requires Python >=3.10)
+FROM python:3.10-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
