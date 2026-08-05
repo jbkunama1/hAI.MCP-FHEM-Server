@@ -1,3 +1,4 @@
+import json
 import os
 import requests
 from fastapi import FastAPI, Request, Response, JSONResponse
@@ -12,6 +13,10 @@ def _fhem(cmd: str) -> str:
     resp.raise_for_status()
     return resp.text
 
+def _devices() -> list[dict]:
+    """Return parsed device list from FHEM jsonlist2."""
+    return json.loads(_fhem("jsonlist2")).get("Results", [])
+
 mcp = FastMCP("fhem-mcp")
 
 @mcp.tool()
@@ -23,10 +28,39 @@ def fhem_command(cmd: str) -> str:
         return f"FHEM connection failed: {e}"
 
 @mcp.tool()
-def fhem_list() -> str:
-    """List all devices registered in FHEM."""
+def fhem_list_devices(name_filter: str = "", type_filter: str = "") -> str:
+    """List FHEM devices as JSON, optionally filtered by name substring or device type (e.g. Dummy, FRITZBOX, Shelly)."""
     try:
-        return _fhem("list")
+        devs = _devices()
+        if name_filter:
+            devs = [d for d in devs if name_filter.lower() in d.get("Name", "").lower()]
+        if type_filter:
+            devs = [d for d in devs if type_filter.lower() == d.get("TYPE", "").lower()]
+        return json.dumps(devs, ensure_ascii=False, indent=1)
+    except (requests.exceptions.RequestException, ValueError) as e:
+        return f"FHEM connection failed: {e}"
+
+@mcp.tool()
+def fhem_get(device: str, reading: str) -> str:
+    """Read a single reading of a FHEM device, e.g. fhem_get('WohnzimmerLampe', 'state')."""
+    try:
+        return _fhem(f"get {device} {reading}")
+    except requests.exceptions.RequestException as e:
+        return f"FHEM connection failed: {e}"
+
+@mcp.tool()
+def fhem_set(device: str, value: str) -> str:
+    """Control a FHEM device, e.g. fhem_set('WohnzimmerLampe', 'on') or fhem_set('Heizung', 'temperature 21.5')."""
+    try:
+        return _fhem(f"set {device} {value}")
+    except requests.exceptions.RequestException as e:
+        return f"FHEM connection failed: {e}"
+
+@mcp.tool()
+def fhem_define(name: str, type: str, def_attr: str = "") -> str:
+    """Create a new FHEM device: fhem_define('Wetter', 'Dummy') or fhem_define('Lampe', 'Shelly', 'http://...')."""
+    try:
+        return _fhem(f"define {name} {type} {def_attr}".rstrip())
     except requests.exceptions.RequestException as e:
         return f"FHEM connection failed: {e}"
 
@@ -47,4 +81,4 @@ async def require_api_key(request, call_next):
 async def health():
     return {"status": "ok"}
 
-# ponytail: raw passthrough only; add typed get/set tools once FHEM device schema is known.
+# ponytail: read-only list via jsonlist2; add reading-history/statistics tools on demand.
