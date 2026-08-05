@@ -22,7 +22,9 @@ async def send_command(cmd: str, x_api_key: str = Header(...)):
         response = requests.get(FHEM_URL, params={"cmd": cmd, "XHR": "1"}, timeout=5)
         response.raise_for_status()
         return {"status": "success", "fhem_response": response.text}
+    except requests.exceptions.RequestException as e:
+        return {"status": "error", "message": f"FHEM connection failed: {str(e)}"}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": f"Unexpected error: {str(e)}"}
 
 # ponytail: No auth persistence, add Redis/DB if scaling.
