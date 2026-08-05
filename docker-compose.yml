@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       - MCP_API_KEY=${MCP_API_KEY:?MCP_API_KEY environment variable is required}
-            - FHEM_URL=${FHEM_URL:-http://192.168.178.15:8085/fhem}
+      - FHEM_URL=${FHEM_URL:-http://192.168.178.15:8085/fhem}
     ports:
       - "5887:8000"
     networks:
