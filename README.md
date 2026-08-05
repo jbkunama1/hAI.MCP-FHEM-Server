@@ -59,6 +59,39 @@ MCP_API_KEY=your-secure-random-key-here
 FHEM_URL=http://192.168.178.15:8085/fhem
 ```
 
+### Local Build
+
+For local development, use the `docker-compose.local.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+  fhem-mcp:
+    build:
+      context: ./fhem-mcp
+      dockerfile: Dockerfile
+    container_name: fhem-mcp
+    restart: unless-stopped
+    environment:
+      - MCP_API_KEY=${MCP_API_KEY:-your-secure-random-key-here}
+      - FHEM_URL=${FHEM_URL:-your-fhem-url-here}
+    ports:
+      - "5887:8000"
+    networks:
+      - highfishNetwork
+
+networks:
+  highfishNetwork:
+    external: true
+```
+
+Run the local build with:
+
+```bash
+docker-compose -f docker-compose.local.yml up --build
+```
+
 ### Run the Container
 
 ```bash
