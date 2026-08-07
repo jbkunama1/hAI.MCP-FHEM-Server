@@ -1,4 +1,8 @@
 <p align="center">
+
+<a href="https://www.buymeacoffee.com/highfish">
+<img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174">
+</a>
   <img src="fhem-mcp-banner.png" alt="hAI.MCPServers Banner">
 </p>
 
@@ -171,3 +175,4 @@ This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for d
 ## 📬 Contact
 
 For questions or feedback, reach out via [GitHub Issues](https://github.com/jbkunama1/hAI.MCPServers/issues).
+
