@@ -1,15 +1,15 @@
 <p align="center">
 
 [![Buy me a coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/highfish)
-  <img src="fhem-mcp-banner.png" alt="hAI.MCPServers Banner">
+  <img src="fhem-mcp-banner.png" alt="hAI.MCP-FHEM-Server Banner">
 </p>
 
-# hAI.MCPServers 🚀
+# hAI.MCP-FHEM-Server 🚀
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Docker Build](https://github.com/jbkunama1/hAI.MCPServers/actions/workflows/docker-build-push.yml/badge.svg)](https://github.com/jbkunama1/hAI.MCPServers/actions/workflows/docker-build-push.yml)
-[![GitHub Stars](https://img.shields.io/github/stars/jbkunama1/hAI.MCPServers.svg)](https://github.com/jbkunama1/hAI.MCPServers/stargazers)
-[![GitHub Issues](https://img.shields.io/github/issues/jbkunama1/hAI.MCPServers.svg)](https://github.com/jbkunama1/hAI.MCPServers/issues)
+[![Docker Build](https://github.com/jbkunama1/hAI.MCP-FHEM-Server/actions/workflows/docker-build-push.yml/badge.svg)](https://github.com/jbkunama1/hAI.MCP-FHEM-Server/actions/workflows/docker-build-push.yml)
+[![GitHub Stars](https://img.shields.io/github/stars/jbkunama1/hAI.MCP-FHEM-Server.svg)](https://github.com/jbkunama1/hAI.MCP-FHEM-Server/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/jbkunama1/hAI.MCP-FHEM-Server.svg)](https://github.com/jbkunama1/hAI.MCP-FHEM-Server/issues)
 
 **MCP Servers for Home Automation and IoT Control**
 
@@ -35,6 +35,8 @@ A collection of lightweight, containerized MCP servers for controlling home auto
 
 ### Deploy with Docker Compose
 
+> **Note**: Both `MCP_API_KEY` and `FHEM_URL` must be set in your environment or `.env` file. The container will fail to start if they are missing.
+
 ```yaml
 version: '3.8'
 
@@ -44,8 +46,8 @@ services:
     container_name: fhem-mcp
     restart: unless-stopped
     environment:
-      - MCP_API_KEY=${MCP_API_KEY:-your-secure-random-key-here}
-      - FHEM_URL=${FHEM_URL:-your-fhem-url-here}
+      - MCP_API_KEY=${MCP_API_KEY:?MCP_API_KEY environment variable is required}
+      - FHEM_URL=${FHEM_URL:?FHEM_URL environment variable is required}
     ports:
       - "5887:8000"
     networks:
@@ -80,8 +82,8 @@ services:
     container_name: fhem-mcp
     restart: unless-stopped
     environment:
-      - MCP_API_KEY=${MCP_API_KEY:-your-secure-random-key-here}
-      - FHEM_URL=${FHEM_URL:-your-fhem-url-here}
+      - MCP_API_KEY=${MCP_API_KEY:?MCP_API_KEY environment variable is required}
+      - FHEM_URL=${FHEM_URL:?FHEM_URL environment variable is required}
     ports:
       - "5887:8000"
     networks:
@@ -172,4 +174,4 @@ This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for d
 
 ## 📬 Contact
 
-For questions or feedback, reach out via [GitHub Issues](https://github.com/jbkunama1/hAI.MCPServers/issues).
+For questions or feedback, reach out via [GitHub Issues](https://github.com/jbkunama1/hAI.MCP-FHEM-Server/issues).
