@@ -1,10 +1,455 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-    <title>hAI.FHEMMCP Admin</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>hAI.FHEMMCP Admin Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: #1a1a2e; color: white; padding: 20px 0; margin-bottom: 30px; }
+        header .container { display: flex; justify-content: space-between; align-items: center; }
+        header h1 { font-size: 1.8rem; font-weight: 600; }
+        .token-display { background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; word-break: break-all; max-width: 300px; }
+        .card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; overflow: hidden; }
+        .card-header { padding: 18px 24px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .card-header h2 { font-size: 1.2rem; font-weight: 600; }
+        .btn { padding: 10px 18px; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: #1a1a2e; color: white; }
+        .btn-primary:hover { background: #2d2d4a; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+        .card-body { padding: 24px; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #fafafa; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: #666; }
+        tr:hover td { background: #fafafa; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 10px; width: 100%; max-width: 500px; margin: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 1.1rem; }
+        .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999; }
+        .modal-body { padding: 24px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.9rem; }
+        .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; transition: border 0.2s; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #1a1a2e; }
+        .form-group small { display: block; margin-top: 4px; font-size: 0.8rem; color: #888; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; }
+        .token-value { background: #f8f9fa; padding: 12px; border-radius: 6px; font-family: monospace; word-break: break-all; border: 1px solid #eee; margin-bottom: 12px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #888; }
+        .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5; }
+        .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 24px; border-radius: 8px; color: white; font-weight: 500; z-index: 2000; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: #28a745; }
+        .toast.error { background: #dc3545; }
+        .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-radius: 50%; border-top-color: transparent; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .section-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; }
+        @media (max-width: 900px) { .section-grid { grid-template-columns: 1fr; } }
+        .action-btns { display: flex; gap: 8px; }
+        .api-key-display { font-family: monospace; font-size: 0.8rem; background: #f8f9fa; padding: 4px 8px; border-radius: 4px; }
+    </style>
 </head>
 <body>
-    <h1>hAI.FHEMMCP Admin Dashboard</h1>
-    <p>Management interface for FHEM instances and API tokens.</p>
+    <header>
+        <div class="container">
+            <h1>hAI.FHEMMCP Admin</h1>
+            <div class="token-display" id="adminToken">Loading...</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="toast" class="toast"></div>
+
+        <div class="section-grid">
+            <!-- Instances Section -->
+            <section class="card">
+                <div class="card-header">
+                    <h2>FHEM Instances</h2>
+                    <button class="btn btn-primary" onclick="openInstanceModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Add Instance
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-wrapper">
+                        <table id="instancesTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>URL</th>
+                                    <th>API Key</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="empty-state" id="instancesEmpty" style="display:none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                        <p>No FHEM instances configured yet.</p>
+                        <button class="btn btn-primary" style="margin-top: 12px;" onclick="openInstanceModal()">Add First Instance</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- API Tokens Section -->
+            <section class="card">
+                <div class="card-header">
+                    <h2>MCP API Tokens</h2>
+                    <button class="btn btn-primary" onclick="openTokenModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Generate Token
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-wrapper">
+                        <table id="tokensTable">
+                            <thead>
+                                <tr>
+                                    <th>Token</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="empty-state" id="tokensEmpty" style="display:none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                        <p>No additional tokens generated.</p>
+                        <button class="btn btn-primary" style="margin-top: 12px;" onclick="openTokenModal()">Generate Token</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Server Info Section -->
+        <section class="card">
+            <div class="card-header">
+                <h2>Server Information</h2>
+            </div>
+            <div class="card-body">
+                <div class="table-wrapper">
+                    <table>
+                        <tbody>
+                            <tr><td><strong>MCP Endpoint</strong></td><td><code>/mcp</code></td></tr>
+                            <tr><td><strong>Health Check</strong></td><td><code>/health</code></td></tr>
+                            <tr><td><strong>Admin API</strong></td><td><code>/admin/api/*</code></td></tr>
+                            <tr><td><strong>Admin UI</strong></td><td><code>/admin</code> (this page)</td></tr>
+                            <tr><td><strong>Auth Header</strong></td><td><code>X-API-Key</code> for MCP, <code>Authorization: Bearer <admin_token></code> for Admin API</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Instance Modal -->
+    <div class="modal" id="instanceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="instanceModalTitle">Add FHEM Instance</h3>
+                <button class="modal-close" onclick="closeInstanceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="instanceForm">
+                    <input type="hidden" id="instanceId">
+                    <div class="form-group">
+                        <label for="instanceName">Instance Name</label>
+                        <input type="text" id="instanceName" placeholder="e.g. Wohnzimmer FHEM" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="instanceUrl">FHEM URL</label>
+                        <input type="url" id="instanceUrl" placeholder="http://192.168.178.15:8085/fhem" required>
+                        <small>Full URL to the FHEM web interface endpoint (must end with /fhem)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="instanceApiKey">FHEM API Key (optional)</label>
+                        <input type="text" id="instanceApiKey" placeholder="Leave empty if no auth required">
+                        <small>If your FHEM instance requires an API key, enter it here</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeInstanceModal()">Cancel</button>
+                <button class="btn btn-primary" id="instanceSaveBtn" onclick="saveInstance()">
+                    <span class="loading" id="instanceSaveLoading" style="display:none;"></span>
+                    <span id="instanceSaveText">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Token Modal -->
+    <div class="modal" id="tokenModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Generate New MCP API Token</h3>
+                <button class="modal-close" onclick="closeTokenModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Token Name / Description</label>
+                    <input type="text" id="tokenName" placeholder="e.g. Home Assistant Integration">
+                    <small>Optional description for this token</small>
+                </div>
+                <div id="newTokenDisplay" class="token-value" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTokenModal()">Close</button>
+                <button class="btn btn-primary" onclick="generateToken()" id="generateTokenBtn">
+                    <span class="loading" id="tokenGenerateLoading" style="display:none;"></span>
+                    <span id="tokenGenerateText">Generate Token</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_TOKEN = (() => {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('admin_token');
+            if (token) {
+                localStorage.setItem('fhem_admin_token', token);
+                return token;
+            }
+            return localStorage.getItem('fhem_admin_token');
+        })();
+
+        const API_BASE = '/admin/api';
+
+        async function apiRequest(endpoint, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${ADMIN_TOKEN}`,
+                ...options.headers
+            };
+            const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+                throw new Error(error.detail || `HTTP ${response.status}`);
+            }
+            return response.json();
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function setLoading(btnId, loadingId, textId, isLoading) {
+            const btn = document.getElementById(btnId);
+            btn.disabled = isLoading;
+            document.getElementById(loadingId).style.display = isLoading ? 'inline-block' : 'none';
+            document.getElementById(textId).textContent = isLoading ? '' : (btnId === 'instanceSaveBtn' ? 'Save' : 'Generate Token');
+        }
+
+        // --- Instances ---
+        async function loadInstances() {
+            try {
+                const instances = await apiRequest('/instances');
+                renderInstances(instances);
+            } catch (e) {
+                showToast('Failed to load instances: ' + e.message, 'error');
+            }
+        }
+
+        function renderInstances(instances) {
+            const tbody = document.querySelector('#instancesTable tbody');
+            const empty = document.getElementById('instancesEmpty');
+            if (!instances.length) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            tbody.innerHTML = instances.map(i => `
+                <tr>
+                    <td><strong>${escapeHtml(i.name)}</strong></td>
+                    <td><code>${escapeHtml(i.url)}</code></td>
+                    <td>${i.api_key ? `<span class="api-key-display">${escapeHtml(i.api_key.substring(0, 12))}...</span>` : '<span style="color:#999;">—</span>'}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn btn-secondary btn-sm" onclick="editInstance(${i.id}, '${escapeHtml(i.name)}', '${escapeHtml(i.url)}', '${escapeHtml(i.api_key || '')}')">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteInstance(${i.id}, '${escapeHtml(i.name)}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openInstanceModal(instance = null) {
+            const modal = document.getElementById('instanceModal');
+            const form = document.getElementById('instanceForm');
+            form.reset();
+            document.getElementById('instanceId').value = '';
+            document.getElementById('instanceModalTitle').textContent = instance ? 'Edit FHEM Instance' : 'Add FHEM Instance';
+            if (instance) {
+                document.getElementById('instanceId').value = instance.id;
+                document.getElementById('instanceName').value = instance.name;
+                document.getElementById('instanceUrl').value = instance.url;
+                document.getElementById('instanceApiKey').value = instance.api_key || '';
+            }
+            modal.classList.add('active');
+        }
+
+        function closeInstanceModal() {
+            document.getElementById('instanceModal').classList.remove('active');
+        }
+
+        async function saveInstance() {
+            const id = document.getElementById('instanceId').value;
+            const name = document.getElementById('instanceName').value.trim();
+            const url = document.getElementById('instanceUrl').value.trim();
+            const api_key = document.getElementById('instanceApiKey').value.trim() || null;
+            if (!name || !url) return showToast('Name and URL are required', 'error');
+
+            setLoading('instanceSaveBtn', 'instanceSaveLoading', 'instanceSaveText', true);
+            try {
+                if (id) {
+                    await apiRequest(`/instances/${id}`, { method: 'DELETE' });
+                    await apiRequest('/instances', {
+                        method: 'POST',
+                        body: JSON.stringify({ name, url, api_key })
+                    });
+                    showToast('Instance updated');
+                } else {
+                    await apiRequest('/instances', {
+                        method: 'POST',
+                        body: JSON.stringify({ name, url, api_key })
+                    });
+                    showToast('Instance added');
+                }
+                closeInstanceModal();
+                loadInstances();
+            } catch (e) {
+                showToast('Failed to save: ' + e.message, 'error');
+            } finally {
+                setLoading('instanceSaveBtn', 'instanceSaveLoading', 'instanceSaveText', false);
+            }
+        }
+
+        function editInstance(id, name, url, api_key) {
+            openInstanceModal({ id, name, url, api_key });
+        }
+
+        async function deleteInstance(id, name) {
+            if (!confirm(`Delete instance "${name}"?`)) return;
+            try {
+                await apiRequest(`/instances/${id}`, { method: 'DELETE' });
+                showToast('Instance deleted');
+                loadInstances();
+            } catch (e) {
+                showToast('Failed to delete: ' + e.message, 'error');
+            }
+        }
+
+        // --- Tokens ---
+        async function loadTokens() {
+            try {
+                const tokens = await apiRequest('/tokens');
+                renderTokens(tokens);
+            } catch (e) {
+                showToast('Failed to load tokens: ' + e.message, 'error');
+            }
+        }
+
+        function renderTokens(tokens) {
+            const tbody = document.querySelector('#tokensTable tbody');
+            const empty = document.getElementById('tokensEmpty');
+            if (!tokens.length) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            tbody.innerHTML = tokens.map(t => `
+                <tr>
+                    <td><code class="api-key-display">${escapeHtml(t.token)}</code></td>
+                    <td>—</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="revokeToken('${escapeHtml(t.token)}')">Revoke</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openTokenModal() {
+            document.getElementById('newTokenDisplay').style.display = 'none';
+            document.getElementById('tokenName').value = '';
+            document.getElementById('tokenModal').classList.add('active');
+        }
+
+        function closeTokenModal() {
+            document.getElementById('tokenModal').classList.remove('active');
+        }
+
+        async function generateToken() {
+            const name = document.getElementById('tokenName').value.trim();
+            setLoading('generateTokenBtn', 'tokenGenerateLoading', 'tokenGenerateText', true);
+            try {
+                const result = await apiRequest('/tokens', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: name || 'Generated from UI' })
+                });
+                document.getElementById('newTokenDisplay').textContent = result.token;
+                document.getElementById('newTokenDisplay').style.display = 'block';
+                showToast('Token generated! Copy it now.');
+                loadTokens();
+            } catch (e) {
+                showToast('Failed to generate token: ' + e.message, 'error');
+            } finally {
+                setLoading('generateTokenBtn', 'tokenGenerateLoading', 'tokenGenerateText', false);
+            }
+        }
+
+        async function revokeToken(token) {
+            if (!confirm('Revoke this token? It cannot be recovered.')) return;
+            try {
+                await apiRequest('/tokens', {
+                    method: 'DELETE',
+                    body: JSON.stringify({ token })
+                });
+                showToast('Token revoked');
+                loadTokens();
+            } catch (e) {
+                showToast('Failed to revoke: ' + e.message, 'error');
+            }
+        }
+
+        // --- Init ---
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.getElementById('adminToken').textContent = ADMIN_TOKEN || 'Not provided (add ?admin_token=... to URL)';
+        if (!ADMIN_TOKEN) {
+            showToast('Admin token not provided. Add ?admin_token=YOUR_TOKEN to the URL.', 'error');
+        }
+
+        loadInstances();
+        loadTokens();
+
+        // Close modals on backdrop click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('active'); });
+        });
+    </script>
 </body>
 </html>
