@@ -1,5 +1,6 @@
 import aiosqlite
 import os
+import hashlib
 
 DB_PATH = "admin.db"
 
@@ -36,3 +37,31 @@ async def delete_instance(instance_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM instances WHERE id = ?", (instance_id,))
         await db.commit()
+
+def _hash_token(token: str) -> str:
+    """Hash a token for secure storage."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+async def add_token(token: str):
+    """Add a new API token to the database (stored as hash)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("INSERT INTO api_keys (key_hash) VALUES (?)", (_hash_token(token),))
+        await db.commit()
+
+async def get_tokens():
+    """Get all API tokens from the database (returns hashed tokens)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT key_hash FROM api_keys")
+        return [row[0] for row in await cursor.fetchall()]
+
+async def delete_token(token_hash: str):
+    """Delete an API token by its hash."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM api_keys WHERE key_hash = ?", (token_hash,))
+        await db.commit()
+
+async def verify_token(token: str) -> bool:
+    """Verify if a token exists in the database."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT 1 FROM api_keys WHERE key_hash = ?", (_hash_token(token),))
+        return await cursor.fetchone() is not None
