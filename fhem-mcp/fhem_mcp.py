@@ -13,6 +13,9 @@ from starlette.staticfiles import StaticFiles
 
 MCP_API_KEY = os.getenv("MCP_API_KEY")
 FHEM_URL = os.getenv("FHEM_URL", "http://192.168.178.15:8085/fhem")
+# Optional auth for the default instance (FHEM_URL):
+# "user:password" -> HTTP Basic Auth (FHEMWEB basicAuth), anything else -> Bearer token
+FHEM_AUTH = os.getenv("FHEM_AUTH")
 
 
 # ---------------------------------------------------------------------------
@@ -45,14 +48,27 @@ async def _get_instance(instance_id: int | None = None, instance_name: str | Non
     return next((i for i in instances if i[1].lower() == instance_name.lower()), None)
 
 
+def _auth_config(secret: str | None):
+    """Build (headers, auth) for a stored secret.
+
+    "user:password" -> HTTP Basic Auth (FHEMWEB basicAuth).
+    Anything else   -> "Authorization: Bearer <secret>" header (e.g. reverse proxy).
+    """
+    if not secret:
+        return {}, None
+    if ":" in secret:
+        user, _, password = secret.partition(":")
+        return {}, (user, password)
+    return {"Authorization": f"Bearer {secret}"}, None
+
+
 def _fhem(cmd: str, instance_id: int | None = None, instance_name: str | None = None) -> str:
     """Execute a FHEM command on a specific instance or the default FHEM_URL."""
     instance = _run(_get_instance(instance_id, instance_name))
     url = instance[2] if instance else FHEM_URL
-    headers = {}
-    if instance and instance[3]:  # api_key
-        headers["Authorization"] = f"Bearer {instance[3]}"
-    resp = requests.get(url, params={"cmd": cmd, "XHR": "1"}, headers=headers, timeout=5)
+    secret = instance[3] if instance else FHEM_AUTH
+    headers, auth = _auth_config(secret)
+    resp = requests.get(url, params={"cmd": cmd, "XHR": "1"}, headers=headers, auth=auth, timeout=5)
     resp.raise_for_status()
     return resp.text
 

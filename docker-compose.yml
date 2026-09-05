@@ -8,6 +8,8 @@ services:
     environment:
       - MCP_API_KEY=${MCP_API_KEY:?MCP_API_KEY environment variable is required}
       - FHEM_URL=${FHEM_URL:?FHEM_URL environment variable is required}
+      # Optional: "user:password" (Basic Auth) or bearer token for the default FHEM instance
+      - FHEM_AUTH=${FHEM_AUTH:-}
     ports:
       - "5887:8000"
     networks:

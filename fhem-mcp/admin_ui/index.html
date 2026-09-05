@@ -89,7 +89,7 @@
                                 <tr>
                                     <th>Name</th>
                                     <th>URL</th>
-                                    <th>API Key</th>
+                                    <th>Auth</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -148,6 +148,7 @@
                             <tr><td><strong>Admin API</strong></td><td><code>/admin/api/*</code></td></tr>
                             <tr><td><strong>Admin UI</strong></td><td><code>/admin</code> (this page)</td></tr>
                             <tr><td><strong>Auth Header</strong></td><td><code>X-API-Key</code> for MCP, <code>Authorization: Bearer &lt;admin_token&gt;</code> for Admin API</td></tr>
+                            <tr><td><strong>FHEM Auth</strong></td><td>Instance secret as <code>user:password</code> (Basic Auth) or bearer token</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -171,13 +172,13 @@
                     </div>
                     <div class="form-group">
                         <label for="instanceUrl">FHEM URL</label>
-                        <input type="url" id="instanceUrl" placeholder="http://192.168.178.15:8085/fhem" required>
-                        <small>Full URL to the FHEM web interface endpoint (must end with /fhem)</small>
+                        <input type="url" id="instanceUrl" placeholder="http://192.168.178.15:4321/fhem" required>
+                        <small>Full URL to the FHEMWEB endpoint (path = webname attribute, default /fhem)</small>
                     </div>
                     <div class="form-group">
-                        <label for="instanceApiKey">FHEM API Key (optional)</label>
-                        <input type="text" id="instanceApiKey" placeholder="Leave empty if no auth required">
-                        <small>If your FHEM instance requires an API key, enter it here</small>
+                        <label for="instanceApiKey">FHEM Auth (optional)</label>
+                        <input type="text" id="instanceApiKey" placeholder="user:password or bearer token">
+                        <small>Use <code>user:password</code> for a FHEMWEB device with basicAuth, or a bearer token behind a reverse proxy</small>
                     </div>
                 </form>
             </div>
@@ -288,7 +289,7 @@
                 <tr>
                     <td><strong>${escapeHtml(i.name)}</strong></td>
                     <td><code>${escapeHtml(i.url)}</code></td>
-                    <td>${i.api_key ? `<span class="api-key-display">${escapeHtml(String(i.api_key).substring(0, 12))}...</span>` : '<span style="color:#999;">—</span>'}</td>
+                    <td>${i.api_key ? `<span class="api-key-display">${escapeHtml(String(i.api_key).includes(':') ? String(i.api_key).split(':')[0] + ':•••' : String(i.api_key).substring(0, 12) + '...')}</span>` : '<span style="color:#999;">—</span>'}</td>
                     <td>
                         <div class="action-btns">
                             <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${i.id}">Edit</button>
