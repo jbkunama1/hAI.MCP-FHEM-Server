@@ -89,7 +89,7 @@
                                 <tr>
                                     <th>Name</th>
                                     <th>URL</th>
-                                    <th>API Key</th>
+                                    <th>Auth</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -118,8 +118,7 @@
                         <table id="tokensTable">
                             <thead>
                                 <tr>
-                                    <th>Token</th>
-                                    <th>Created</th>
+                                    <th>Token (SHA-256 Hash)</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -148,7 +147,8 @@
                             <tr><td><strong>Health Check</strong></td><td><code>/health</code></td></tr>
                             <tr><td><strong>Admin API</strong></td><td><code>/admin/api/*</code></td></tr>
                             <tr><td><strong>Admin UI</strong></td><td><code>/admin</code> (this page)</td></tr>
-                            <tr><td><strong>Auth Header</strong></td><td><code>X-API-Key</code> for MCP, <code>Authorization: Bearer <admin_token></code> for Admin API</td></tr>
+                            <tr><td><strong>Auth Header</strong></td><td><code>X-API-Key</code> for MCP, <code>Authorization: Bearer &lt;admin_token&gt;</code> for Admin API</td></tr>
+                            <tr><td><strong>FHEM Auth</strong></td><td>Instance secret as <code>user:password</code> (Basic Auth) or bearer token</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -172,13 +172,13 @@
                     </div>
                     <div class="form-group">
                         <label for="instanceUrl">FHEM URL</label>
-                        <input type="url" id="instanceUrl" placeholder="http://192.168.178.15:8085/fhem" required>
-                        <small>Full URL to the FHEM web interface endpoint (must end with /fhem)</small>
+                        <input type="url" id="instanceUrl" placeholder="http://192.168.178.15:4321/fhem" required>
+                        <small>Full URL to the FHEMWEB endpoint (path = webname attribute, default /fhem)</small>
                     </div>
                     <div class="form-group">
-                        <label for="instanceApiKey">FHEM API Key (optional)</label>
-                        <input type="text" id="instanceApiKey" placeholder="Leave empty if no auth required">
-                        <small>If your FHEM instance requires an API key, enter it here</small>
+                        <label for="instanceApiKey">FHEM Auth (optional)</label>
+                        <input type="text" id="instanceApiKey" placeholder="user:password or bearer token">
+                        <small>Use <code>user:password</code> for a FHEMWEB device with basicAuth, or a bearer token behind a reverse proxy</small>
                     </div>
                 </form>
             </div>
@@ -229,6 +229,13 @@
         })();
 
         const API_BASE = '/admin/api';
+        let instancesCache = [];
+
+        function escapeHtml(text) {
+            return String(text ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
 
         async function apiRequest(endpoint, options = {}) {
             const headers = {
@@ -262,6 +269,7 @@
         async function loadInstances() {
             try {
                 const instances = await apiRequest('/instances');
+                instancesCache = instances;
                 renderInstances(instances);
             } catch (e) {
                 showToast('Failed to load instances: ' + e.message, 'error');
@@ -281,16 +289,28 @@
                 <tr>
                     <td><strong>${escapeHtml(i.name)}</strong></td>
                     <td><code>${escapeHtml(i.url)}</code></td>
-                    <td>${i.api_key ? `<span class="api-key-display">${escapeHtml(i.api_key.substring(0, 12))}...</span>` : '<span style="color:#999;">—</span>'}</td>
+                    <td>${i.api_key ? `<span class="api-key-display">${escapeHtml(String(i.api_key).includes(':') ? String(i.api_key).split(':')[0] + ':•••' : String(i.api_key).substring(0, 12) + '...')}</span>` : '<span style="color:#999;">—</span>'}</td>
                     <td>
                         <div class="action-btns">
-                            <button class="btn btn-secondary btn-sm" onclick="editInstance(${i.id}, '${escapeHtml(i.name)}', '${escapeHtml(i.url)}', '${escapeHtml(i.api_key || '')}')">Edit</button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteInstance(${i.id}, '${escapeHtml(i.name)}')">Delete</button>
+                            <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${i.id}">Edit</button>
+                            <button class="btn btn-danger btn-sm" data-action="delete" data-id="${i.id}">Delete</button>
                         </div>
                     </td>
                 </tr>
             `).join('');
         }
+
+        document.querySelector('#instancesTable tbody').addEventListener('click', e => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const instance = instancesCache.find(x => x.id === Number(btn.dataset.id));
+            if (!instance) return;
+            if (btn.dataset.action === 'edit') {
+                openInstanceModal(instance);
+            } else if (btn.dataset.action === 'delete') {
+                deleteInstance(instance.id, instance.name);
+            }
+        });
 
         function openInstanceModal(instance = null) {
             const modal = document.getElementById('instanceModal');
@@ -321,9 +341,8 @@
             setLoading('instanceSaveBtn', 'instanceSaveLoading', 'instanceSaveText', true);
             try {
                 if (id) {
-                    await apiRequest(`/instances/${id}`, { method: 'DELETE' });
-                    await apiRequest('/instances', {
-                        method: 'POST',
+                    await apiRequest(`/instances/${id}`, {
+                        method: 'PUT',
                         body: JSON.stringify({ name, url, api_key })
                     });
                     showToast('Instance updated');
@@ -341,10 +360,6 @@
             } finally {
                 setLoading('instanceSaveBtn', 'instanceSaveLoading', 'instanceSaveText', false);
             }
-        }
-
-        function editInstance(id, name, url, api_key) {
-            openInstanceModal({ id, name, url, api_key });
         }
 
         async function deleteInstance(id, name) {
@@ -379,14 +394,19 @@
             empty.style.display = 'none';
             tbody.innerHTML = tokens.map(t => `
                 <tr>
-                    <td><code class="api-key-display">${escapeHtml(t.token)}</code></td>
-                    <td>—</td>
+                    <td><code class="api-key-display">${escapeHtml(t)}</code></td>
                     <td>
-                        <button class="btn btn-danger btn-sm" onclick="revokeToken('${escapeHtml(t.token)}')">Revoke</button>
+                        <button class="btn btn-danger btn-sm" data-action="revoke" data-token="${escapeHtml(t)}">Revoke</button>
                     </td>
                 </tr>
             `).join('');
         }
+
+        document.querySelector('#tokensTable tbody').addEventListener('click', e => {
+            const btn = e.target.closest('button[data-action="revoke"]');
+            if (!btn) return;
+            revokeToken(btn.dataset.token);
+        });
 
         function openTokenModal() {
             document.getElementById('newTokenDisplay').style.display = 'none';
@@ -432,12 +452,6 @@
         }
 
         // --- Init ---
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
         document.getElementById('adminToken').textContent = ADMIN_TOKEN || 'Not provided (add ?admin_token=... to URL)';
         if (!ADMIN_TOKEN) {
             showToast('Admin token not provided. Add ?admin_token=YOUR_TOKEN to the URL.', 'error');
