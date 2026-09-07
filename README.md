@@ -28,6 +28,7 @@ A collection of lightweight, containerized MCP servers for controlling home auto
 - **Dockerized**: Ready to deploy with `docker-compose` or Portainer.
 - **GitHub Actions**: Automated builds and pushes to **GHCR.io**.
 - **MIT License**: Free to use, modify, and distribute.
+- **HTTP Basic Auth**: Unterstützt FHEMWEB-Instanzen mit Basic Auth via `FHEM_AUTH` Umgebungsvariable.
 
 ---
 
@@ -48,6 +49,7 @@ services:
     environment:
       - MCP_API_KEY=${MCP_API_KEY:?MCP_API_KEY environment variable is required}
       - FHEM_URL=${FHEM_URL:?FHEM_URL environment variable is required}
+      - FHEM_AUTH=${FHEM_AUTH:-}  # Optional: "username:password" for HTTP Basic Auth
     ports:
       - "5887:8000"
     networks:
@@ -65,7 +67,10 @@ Set the following variables in Portainer:
 ```ini
 MCP_API_KEY=your-secure-random-key-here
 FHEM_URL=http://192.168.178.15:8085/fhem
+FHEM_AUTH=mcpuser:ein-langes-zufaelliges-passwort
 ```
+
+**FHEM_AUTH (optional):** Wenn deine FHEMWEB-Instanz mit HTTP Basic Auth geschützt ist, setze `FHEM_AUTH` im Format `username:password`. Der MCP sendet dann einen `Authorization: Basic`-Header. Wenn nicht gesetzt, wird kein Auth-Header gesendet.
 
 ### Local Build
 
@@ -84,6 +89,7 @@ services:
     environment:
       - MCP_API_KEY=${MCP_API_KEY:?MCP_API_KEY environment variable is required}
       - FHEM_URL=${FHEM_URL:?FHEM_URL environment variable is required}
+      - FHEM_AUTH=${FHEM_AUTH:-}  # Optional: "username:password" for HTTP Basic Auth
     ports:
       - "5887:8000"
     networks:
