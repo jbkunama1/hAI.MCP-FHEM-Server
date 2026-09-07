@@ -5,7 +5,6 @@ import os
 import secrets
 
 import requests
-from fastapi import Depends, Header, HTTPException
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import BaseModel
@@ -289,7 +288,7 @@ def fhem_reading_history(device: str, reading: str, start: str = "", end: str = 
 
 
 # ---------------------------------------------------------------------------
-# Admin API (registered AFTER the app object exists)
+# Admin API (registered AFTER the app object exists, plain Starlette style)
 # ---------------------------------------------------------------------------
 app = mcp.streamable_http_app()
 
@@ -300,100 +299,145 @@ class InstanceCreate(BaseModel):
     api_key: str | None = None
 
 
-class InstanceResponse(BaseModel):
-    id: int
-    name: str
-    url: str
-    api_key: str | None = None
-
-
 class TokenRevokeRequest(BaseModel):
     token: str
 
 
-async def _verify_admin_token(authorization: str | None = Header(None)):
+async def _require_admin(request):
+    """Return an error response, or None when the request carries a valid admin token."""
+    authorization = request.headers.get("authorization")
     if not authorization:
-        raise HTTPException(status_code=401, detail="Missing authorization header")
+        return JSONResponse({"detail": "Missing authorization header"}, status_code=401)
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token.strip():
-        raise HTTPException(status_code=401, detail="Invalid authorization header, expected 'Bearer <token>'")
+        return JSONResponse({"detail": "Invalid authorization header, expected 'Bearer <token>'"}, status_code=401)
     from admin_db import verify_token
 
     if not await verify_token(token.strip()):
-        raise HTTPException(status_code=403, detail="Invalid admin token")
-    return True
+        return JSONResponse({"detail": "Invalid admin token"}, status_code=403)
+    return None
 
 
-@app.get("/admin/api/instances", response_model=list[InstanceResponse])
-async def list_instances(_: bool = Depends(_verify_admin_token)):
+async def _json_body(request):
+    """Parse the JSON body; returns (data, error_response)."""
+    try:
+        return await request.json(), None
+    except Exception:
+        return None, JSONResponse({"detail": "Invalid JSON body"}, status_code=400)
+
+
+@app.route("/admin/api/instances", methods=["GET"])
+async def list_instances(request):
     """List all configured FHEM instances."""
+    auth_error = await _require_admin(request)
+    if auth_error:
+        return auth_error
     from admin_db import get_instances
 
     await _ensure_db()
     instances = await get_instances()
-    return [{"id": i[0], "name": i[1], "url": i[2], "api_key": i[3]} for i in instances]
+    return JSONResponse([{"id": i[0], "name": i[1], "url": i[2], "api_key": i[3]} for i in instances])
 
 
-@app.post("/admin/api/instances", response_model=InstanceResponse, status_code=201)
-async def create_instance(instance: InstanceCreate, _: bool = Depends(_verify_admin_token)):
+@app.route("/admin/api/instances", methods=["POST"])
+async def create_instance(request):
     """Add a new FHEM instance."""
+    auth_error = await _require_admin(request)
+    if auth_error:
+        return auth_error
     from admin_db import add_instance
 
     await _ensure_db()
+    data, error = await _json_body(request)
+    if error:
+        return error
+    try:
+        instance = InstanceCreate(**data)
+    except Exception:
+        return JSONResponse({"detail": "Invalid instance payload, expected {name, url, api_key?}"}, status_code=422)
     instance_id = await add_instance(instance.name, instance.url, instance.api_key)
-    return {"id": instance_id, "name": instance.name, "url": instance.url, "api_key": instance.api_key}
+    return JSONResponse({"id": instance_id, "name": instance.name, "url": instance.url, "api_key": instance.api_key}, status_code=201)
 
 
-@app.put("/admin/api/instances/{instance_id}", response_model=InstanceResponse)
-async def update_instance(instance_id: int, instance: InstanceCreate, _: bool = Depends(_verify_admin_token)):
+@app.route("/admin/api/instances/{instance_id:int}", methods=["PUT"])
+async def update_instance(request):
     """Update an existing FHEM instance (idempotent, keeps the row id)."""
+    auth_error = await _require_admin(request)
+    if auth_error:
+        return auth_error
     from admin_db import update_instance as db_update_instance
 
     await _ensure_db()
-    updated = await db_update_instance(instance_id, instance.name, instance.url, instance.api_key)
+    data, error = await _json_body(request)
+    if error:
+        return error
+    try:
+        instance = InstanceCreate(**data)
+    except Exception:
+        return JSONResponse({"detail": "Invalid instance payload, expected {name, url, api_key?}"}, status_code=422)
+    updated = await db_update_instance(request.path_params["instance_id"], instance.name, instance.url, instance.api_key)
     if not updated:
-        raise HTTPException(status_code=404, detail="Instance not found")
-    return {"id": instance_id, "name": instance.name, "url": instance.url, "api_key": instance.api_key}
+        return JSONResponse({"detail": "Instance not found"}, status_code=404)
+    return JSONResponse({"id": request.path_params["instance_id"], "name": instance.name, "url": instance.url, "api_key": instance.api_key})
 
 
-@app.delete("/admin/api/instances/{instance_id}")
-async def delete_instance(instance_id: int, _: bool = Depends(_verify_admin_token)):
+@app.route("/admin/api/instances/{instance_id:int}", methods=["DELETE"])
+async def delete_instance(request):
     """Delete a FHEM instance."""
+    auth_error = await _require_admin(request)
+    if auth_error:
+        return auth_error
     from admin_db import delete_instance as db_delete_instance
 
     await _ensure_db()
-    await db_delete_instance(instance_id)
-    return {"status": "deleted"}
+    await db_delete_instance(request.path_params["instance_id"])
+    return JSONResponse({"status": "deleted"})
 
 
-@app.get("/admin/api/tokens", response_model=list[str])
-async def list_tokens(_: bool = Depends(_verify_admin_token)):
+@app.route("/admin/api/tokens", methods=["GET"])
+async def list_tokens(request):
     """List all MCP API tokens (admin only, returns SHA-256 hashes)."""
+    auth_error = await _require_admin(request)
+    if auth_error:
+        return auth_error
     from admin_db import get_tokens
 
     await _ensure_db()
-    return await get_tokens()
+    return JSONResponse(await get_tokens())
 
 
-@app.post("/admin/api/tokens", status_code=201)
-async def create_token(_: bool = Depends(_verify_admin_token)):
+@app.route("/admin/api/tokens", methods=["POST"])
+async def create_token(request):
     """Create a new MCP API token. The plaintext token is returned exactly once."""
+    auth_error = await _require_admin(request)
+    if auth_error:
+        return auth_error
     from admin_db import add_token
 
     await _ensure_db()
     new_token = secrets.token_urlsafe(32)
     await add_token(new_token)
-    return {"token": new_token}
+    return JSONResponse({"token": new_token}, status_code=201)
 
 
-@app.delete("/admin/api/tokens")
-async def delete_token(body: TokenRevokeRequest, _: bool = Depends(_verify_admin_token)):
+@app.route("/admin/api/tokens", methods=["DELETE"])
+async def delete_token(request):
     """Revoke an MCP API token by its hash (JSON body: {"token": "<hash>"})."""
+    auth_error = await _require_admin(request)
+    if auth_error:
+        return auth_error
     from admin_db import delete_token as db_delete_token
 
     await _ensure_db()
+    data, error = await _json_body(request)
+    if error:
+        return error
+    try:
+        body = TokenRevokeRequest(**data)
+    except Exception:
+        return JSONResponse({"detail": "Invalid payload, expected {token}"}, status_code=422)
     await db_delete_token(body.token)
-    return {"status": "revoked"}
+    return JSONResponse({"status": "revoked"})
 
 
 # Static file serving for the admin UI
