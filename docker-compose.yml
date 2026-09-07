@@ -12,6 +12,8 @@ services:
       - FHEM_AUTH=${FHEM_AUTH:-}
       # Optional: comma-separated extra Host headers for the MCP DNS rebinding protection
       - MCP_ALLOWED_HOSTS=${MCP_ALLOWED_HOSTS:-}
+      # Optional: set to "false" to disable the MCP DNS rebinding protection entirely
+      - MCP_DNS_REBINDING_PROTECTION=${MCP_DNS_REBINDING_PROTECTION:-}
     ports:
       - "5887:8000"
     networks:

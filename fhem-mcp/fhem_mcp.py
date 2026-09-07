@@ -25,8 +25,12 @@ MCP_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("MCP_ALLOWED_ORIGINS", "").s
 
 # DNS rebinding protection (MCP SDK >= 1.23): allow the Host header(s) the
 # server is actually reached on. Loopback stays allowed for the healthcheck.
+# MCP_DNS_REBINDING_PROTECTION=false disables the check entirely (only do this
+# behind the X-API-Key middleware or another trusted auth layer).
+_DNS_PROTECTION = os.getenv("MCP_DNS_REBINDING_PROTECTION", "true").strip().lower() not in ("false", "0", "off")
+
 _transport_security = TransportSecuritySettings(
-    enable_dns_rebinding_protection=True,
+    enable_dns_rebinding_protection=_DNS_PROTECTION,
     allowed_hosts=["127.0.0.1:*", "localhost:*", "[::1]:*"] + MCP_ALLOWED_HOSTS,
     allowed_origins=["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"] + MCP_ALLOWED_ORIGINS,
 )
