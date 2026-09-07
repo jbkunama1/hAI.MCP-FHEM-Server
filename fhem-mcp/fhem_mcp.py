@@ -3,6 +3,7 @@ import concurrent.futures
 import json
 import os
 import secrets
+from contextlib import asynccontextmanager
 
 import requests
 from mcp.server.fastmcp import FastMCP
@@ -114,6 +115,7 @@ def _device_search(room: str = "", type_filter: str = "", instance_id: int | Non
 # ---------------------------------------------------------------------------
 # Admin DB bootstrap (lifespan + lazy fallback)
 # ---------------------------------------------------------------------------
+@asynccontextmanager
 async def _lifespan(app):
     from admin_db import add_token, get_tokens, init_db
 
@@ -219,7 +221,7 @@ def fhem_delete(device: str, instance_id: int | None = None, instance_name: str 
 
 @mcp.tool()
 def fhem_list_devices(name_filter: str = "", type_filter: str = "", instance_id: int | None = None, instance_name: str | None = None) -> str:
-    """List FHEM devices as JSON, optionally filtered by name substring or device type (e.g. Dummy, FRITZBOX, Shelly)."""
+    """List all FHEM devices as JSON, optionally filtered by name substring or device type (e.g. Dummy, FRITZBOX, Shelly)."""
     try:
         devs = _devices(instance_id, instance_name)
         if name_filter:
