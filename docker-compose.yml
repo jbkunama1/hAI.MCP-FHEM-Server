@@ -10,6 +10,8 @@ services:
       - FHEM_URL=${FHEM_URL:?FHEM_URL environment variable is required}
       # Optional: "user:password" (Basic Auth) or bearer token for the default FHEM instance
       - FHEM_AUTH=${FHEM_AUTH:-}
+      # Optional: comma-separated extra Host headers for the MCP DNS rebinding protection
+      - MCP_ALLOWED_HOSTS=${MCP_ALLOWED_HOSTS:-}
     ports:
       - "5887:8000"
     networks:
