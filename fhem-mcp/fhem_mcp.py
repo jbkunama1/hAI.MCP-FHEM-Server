@@ -9,6 +9,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import BaseModel
 from starlette.responses import JSONResponse
+from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
 MCP_API_KEY = os.getenv("MCP_API_KEY")
@@ -288,7 +289,7 @@ def fhem_reading_history(device: str, reading: str, start: str = "", end: str = 
 
 
 # ---------------------------------------------------------------------------
-# Admin API (registered AFTER the app object exists, plain Starlette style)
+# Admin API (plain Starlette routes on app.router, version-proof)
 # ---------------------------------------------------------------------------
 app = mcp.streamable_http_app()
 
@@ -326,7 +327,6 @@ async def _json_body(request):
         return None, JSONResponse({"detail": "Invalid JSON body"}, status_code=400)
 
 
-@app.route("/admin/api/instances", methods=["GET"])
 async def list_instances(request):
     """List all configured FHEM instances."""
     auth_error = await _require_admin(request)
@@ -339,7 +339,6 @@ async def list_instances(request):
     return JSONResponse([{"id": i[0], "name": i[1], "url": i[2], "api_key": i[3]} for i in instances])
 
 
-@app.route("/admin/api/instances", methods=["POST"])
 async def create_instance(request):
     """Add a new FHEM instance."""
     auth_error = await _require_admin(request)
@@ -359,7 +358,6 @@ async def create_instance(request):
     return JSONResponse({"id": instance_id, "name": instance.name, "url": instance.url, "api_key": instance.api_key}, status_code=201)
 
 
-@app.route("/admin/api/instances/{instance_id:int}", methods=["PUT"])
 async def update_instance(request):
     """Update an existing FHEM instance (idempotent, keeps the row id)."""
     auth_error = await _require_admin(request)
@@ -381,7 +379,6 @@ async def update_instance(request):
     return JSONResponse({"id": request.path_params["instance_id"], "name": instance.name, "url": instance.url, "api_key": instance.api_key})
 
 
-@app.route("/admin/api/instances/{instance_id:int}", methods=["DELETE"])
 async def delete_instance(request):
     """Delete a FHEM instance."""
     auth_error = await _require_admin(request)
@@ -394,7 +391,6 @@ async def delete_instance(request):
     return JSONResponse({"status": "deleted"})
 
 
-@app.route("/admin/api/tokens", methods=["GET"])
 async def list_tokens(request):
     """List all MCP API tokens (admin only, returns SHA-256 hashes)."""
     auth_error = await _require_admin(request)
@@ -406,7 +402,6 @@ async def list_tokens(request):
     return JSONResponse(await get_tokens())
 
 
-@app.route("/admin/api/tokens", methods=["POST"])
 async def create_token(request):
     """Create a new MCP API token. The plaintext token is returned exactly once."""
     auth_error = await _require_admin(request)
@@ -420,7 +415,6 @@ async def create_token(request):
     return JSONResponse({"token": new_token}, status_code=201)
 
 
-@app.route("/admin/api/tokens", methods=["DELETE"])
 async def delete_token(request):
     """Revoke an MCP API token by its hash (JSON body: {"token": "<hash>"})."""
     auth_error = await _require_admin(request)
@@ -440,10 +434,21 @@ async def delete_token(request):
     return JSONResponse({"status": "revoked"})
 
 
+# Register admin API routes directly on the router (works on any Starlette version)
+app.router.routes.extend([
+    Route("/admin/api/instances", list_instances, methods=["GET"]),
+    Route("/admin/api/instances", create_instance, methods=["POST"]),
+    Route("/admin/api/instances/{instance_id:int}", update_instance, methods=["PUT"]),
+    Route("/admin/api/instances/{instance_id:int}", delete_instance, methods=["DELETE"]),
+    Route("/admin/api/tokens", list_tokens, methods=["GET"]),
+    Route("/admin/api/tokens", create_token, methods=["POST"]),
+    Route("/admin/api/tokens", delete_token, methods=["DELETE"]),
+])
+
 # Static file serving for the admin UI
 admin_ui_path = os.path.join(os.path.dirname(__file__), "admin_ui")
 if os.path.exists(admin_ui_path):
-    app.mount("/admin", StaticFiles(directory=admin_ui_path, html=True), name="admin")
+    app.router.routes.append(Mount("/admin", app=StaticFiles(directory=admin_ui_path, html=True), name="admin"))
 
 # X-API-Key auth for the MCP endpoint (health + admin UI/API use their own auth)
 if MCP_API_KEY:
