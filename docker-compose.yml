@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   fhem-mcp:
-    image: ghcr.io/jbkunama1/hai.mcpservers/fhem-mcp:latest
+    image: ghcr.io/jbkunama1/hai.mcp-fhem-server/fhem-mcp:latest
     container_name: fhem-mcp
     restart: unless-stopped
     environment:

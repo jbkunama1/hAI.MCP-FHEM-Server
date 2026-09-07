@@ -43,13 +43,14 @@ version: '3.8'
 
 services:
   fhem-mcp:
-    image: ghcr.io/jbkunama1/hai.mcpservers/fhem-mcp:latest
+    image: ghcr.io/jbkunama1/hai.mcp-fhem-server/fhem-mcp:latest
     container_name: fhem-mcp
     restart: unless-stopped
     environment:
       - MCP_API_KEY=${MCP_API_KEY:?MCP_API_KEY environment variable is required}
       - FHEM_URL=${FHEM_URL:?FHEM_URL environment variable is required}
       - FHEM_AUTH=${FHEM_AUTH:-}  # Optional: "username:password" for HTTP Basic Auth
+      - MCP_ALLOWED_HOSTS=${MCP_ALLOWED_HOSTS:-}  # Optional: extra Host headers for DNS rebinding protection
     ports:
       - "5887:8000"
     networks:
@@ -71,6 +72,8 @@ FHEM_AUTH=mcpuser:ein-langes-zufaelliges-passwort
 ```
 
 **FHEM_AUTH (optional):** Wenn deine FHEMWEB-Instanz mit HTTP Basic Auth geschützt ist, setze `FHEM_AUTH` im Format `username:password`. Der MCP sendet dann einen `Authorization: Basic`-Header. Wenn nicht gesetzt, wird kein Auth-Header gesendet.
+
+**MCP_ALLOWED_HOSTS (optional):** Das MCP-SDK (>= 1.23) verwirft Requests mit unbekanntem Host-Header (DNS-Rebinding-Schutz, Fehler `421 Invalid Host header`). Trage hier kommagetrennt die Hosts ein, unter denen der Server erreichbar ist, z. B. `192.168.178.10:5887` oder `mcp.example.com:*`. Loopback ist immer erlaubt. Alternativ kann der Check mit `MCP_DNS_REBINDING_PROTECTION=false` komplett deaktiviert werden (nur hinter der X-API-Key-Absicherung).
 
 ### Local Build
 
